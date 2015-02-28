@@ -11,6 +11,8 @@
 #include <unistd.h>
 
 #define __BUFLEN__ 1024
+#define __USER_NAME_LEN__ 34
+#define __PASSWORD_LEN__ 34
 
 int main(int argc, char * argv[])
 {
@@ -43,10 +45,39 @@ int main(int argc, char * argv[])
 											inet_ntoa(cli_addr.sin_addr));
 						if(send(cl_socket, "login:", strlen("login:")+1, 0) > 0)
 						{
-							int recv_size = recv(cl_socket, buffer, __BUFLEN__, 0);
+							bzero(buffer, __BUFLEN__);
+							int recv_size = recv(cl_socket, buffer, __USER_NAME_LEN__, 0);
 							if(recv_size > 0)
 							{
-								fprintf(stdout, "resv |%s|\n", buffer );
+								fprintf(stdout, "resv %d bytes |%s|\n", recv_size, buffer );
+								if((buffer[recv_size-1] == '\n') && (buffer[recv_size-2] == '\r'))
+								{
+									// printf("Success\n");
+									if(send(cl_socket, "password:", strlen("password:")+1, 0) > 0)
+									{
+										bzero(buffer, __BUFLEN__);
+										int recv_size = recv(cl_socket, buffer, __USER_NAME_LEN__, 0);
+										if(recv_size > 0)
+										{
+
+										}
+										else
+										{
+											error_at_line(0, errno, __FILE__, __LINE__, "recv()");
+										}
+									}
+									else
+									{
+											error_at_line(0, errno, __FILE__, __LINE__, "send()");
+									}
+								}
+								else
+								{ 
+									const char * err_user = "ERROR user name is to long\n";
+									if(send(cl_socket, err_user, strlen(err_user)+1, 0) <= 0)
+										error_at_line(0, errno, __FILE__, __LINE__, "send()");
+									error_at_line(0, errno, __FILE__, __LINE__, "user name to long");
+								}
 							}
 							else
 							{
@@ -57,6 +88,7 @@ int main(int argc, char * argv[])
 						{
 								error_at_line(0, errno, __FILE__, __LINE__, "send()");
 						}
+						close(cl_socket);
 					}
 					else
 					{
